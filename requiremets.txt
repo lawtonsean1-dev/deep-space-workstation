@@ -1,0 +1,5 @@
+streamlit
+lightkurve
+matplotlib
+astropy
+requests
