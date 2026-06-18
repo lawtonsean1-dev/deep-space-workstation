@@ -15,10 +15,11 @@ A sleek, night-vision-friendly cockpit for rapid exoplanet profiling, powered by
 
 🔗 **Live App Link:** https://deep-space-workstation.streamlit.app/
 
-<img width="1919" height="1079" alt="Screenshot 2026-06-17 101336" src="https://github.com/user-attachments/assets/527a988c-ec32-4eb0-837f-ec398915ff7e" />
-<img width="1919" height="1079" alt="Screenshot 2026-06-17 101359" src="https://github.com/user-attachments/assets/3766fba6-c5e6-417b-a891-a9f84317723b" />
-<img width="1919" height="1079" alt="Screenshot 2026-06-17 101418" src="https://github.com/user-attachments/assets/ce0f1dde-10bd-45f4-bd41-b1ed1ed9ecaa" />
-<img width="1919" height="1079" alt="Screenshot 2026-06-17 101431" src="https://github.com/user-attachments/assets/97e8b8a2-85d3-4a11-aab7-d01033cee105" />
+<img width="1919" height="821" alt="Screenshot 2026-06-17 101336" src="https://github.com/user-attachments/assets/efd8d6d2-6b22-4220-95e3-d97a0275785d" />
+<img width="1919" height="825" alt="Screenshot 2026-06-17 101359" src="https://github.com/user-attachments/assets/5c662ed8-e9e8-462b-a0c5-cc4d6868ac32" />
+<img width="1919" height="822" alt="Screenshot 2026-06-17 101418" src="https://github.com/user-attachments/assets/0dbb0b3e-676b-4365-9849-34a64d4692eb" />
+<img width="1919" height="815" alt="Screenshot 2026-06-17 101431" src="https://github.com/user-attachments/assets/68586adc-baf7-4485-aaae-ff1f29939b50" />
+
 
 ## 🗺️ Project Roadmap
 Help us build the ultimate amateur astronomy workstation! Here is what we are building next:
