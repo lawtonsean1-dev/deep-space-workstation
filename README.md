@@ -35,3 +35,12 @@ I would love to hear from amateur astronomers and hobbyists! If you want to requ
 1. Click on the **Issues** tab at the top of this page.
 2. Click the green **New Issue** button.
 3. Email me at lawtonsean1@gmail.com
+
+## 🌌 Data Sources & Acknowledgments
+
+This workstation is built upon the incredible open data and open-source software provided by the astronomical community. Project data and core functionality are powered by:
+
+* **[NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/):** Providing the foundational data pipelines for known exoplanets, including comprehensive physical and orbital characteristics.
+* **[Lightkurve](https://docs.lightkurve.org/):** A beautiful Python package for analyzing astronomical light curves, specifically utilized here for live transit plotting using Kepler, K2, and TESS data.
+* **[Astropy](https://www.astropy.org/):** A core community-led Python package providing critical tools, coordinate transformations, and astronomical calculations.
+* **[SIMBAD Astronomical Database](http://simbad.u-strasbg.fr/simbad/):** Utilized for coordinate resolving and cross-referencing non-indexed target stars.
