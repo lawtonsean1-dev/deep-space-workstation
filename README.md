@@ -9,9 +9,9 @@ A sleek, night-vision-friendly cockpit for rapid exoplanet profiling, powered by
 ## 🚀 Key Features
 
 *   **NASA Exoplanet Archive Integration:** Automates data retrieval pipelines to pull physical, orbital, and atmospheric metrics directly from official NASA archives.
-*   **Live Transit Plotting:** Leverages `lightkurve` to process and plot stellar brightness data, allowing users to visualize exoplanet transit dips in real time.
-*   **Tactical Night-Vision UI:** Features a custom, low-light-friendly "cyberpunk dark-sky" theme optimized for amateur astronomers to use in the field without ruining their night adaptation.
-*   **Rapid Profiling Workflow:** Designed as a streamlined, intuitive cockpit for quickly cross-referencing and analyzing candidate target stars.
+*   **Live Transit Plotting:** Leverages `lightkurve` to process and plot stellar brightness data, allowing users to visualise exoplanet transit dips in real time.
+*   **Tactical Night-Vision UI:** Features a custom, low-light-friendly "cyberpunk dark-sky" theme optimised for amateur astronomers to use in the field without ruining their night adaptation.
+*   **Rapid Profiling Workflow:** Designed as a streamlined, intuitive cockpit for quickly cross-referencing and analysing candidate target stars.
 
 🔗 **Live App Link:** https://deep-space-workstation.streamlit.app/
 
@@ -26,8 +26,8 @@ Help us build the ultimate amateur astronomy workstation! Here is what we are bu
 - [x] Create a core NASA `pscomppars` data retrieval pipeline.
 - [x] Implement live `lightkurve` transit plotting.
 - [x] Cyberpunk dark-sky theme overhaul.
-- [ ] Add error margins ($\pm$) to host stellar metrics.
-- [ ] Build a 2D orbital trajectory visualizer using `matplotlib`.
+- [ ] Add error margins (\pm) to host stellar metrics.
+- [ ] Build a 2D orbital trajectory visualiser using `matplotlib`.
 - [ ] Integrate a SIMBAD coordinate resolver for non-indexed target stars.
 
 ## 🛠️ How to Give Feedback & Report Bugs
@@ -41,6 +41,6 @@ I would love to hear from amateur astronomers and hobbyists! If you want to requ
 This workstation is built upon the incredible open data and open-source software provided by the astronomical community. Project data and core functionality are powered by:
 
 * **[NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/):** Providing the foundational data pipelines for known exoplanets, including comprehensive physical and orbital characteristics.
-* **[Lightkurve](https://docs.lightkurve.org/):** A beautiful Python package for analyzing astronomical light curves, specifically utilized here for live transit plotting using Kepler, K2, and TESS data.
+* **[Lightkurve](https://docs.lightkurve.org/):** A beautiful Python package for analysing astronomical light curves, specifically utilised here for live transit plotting using Kepler, K2, and TESS data.
 * **[Astropy](https://www.astropy.org/):** A core community-led Python package providing critical tools, coordinate transformations, and astronomical calculations.
-* **[SIMBAD Astronomical Database](http://simbad.u-strasbg.fr/simbad/):** Utilized for coordinate resolving and cross-referencing non-indexed target stars.
+* **[SIMBAD Astronomical Database](http://simbad.u-strasbg.fr/simbad/):** Utilised for coordinate resolving and cross-referencing non-indexed target stars.
