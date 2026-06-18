@@ -1,0 +1,11 @@
+# Clone the repository
+git clone https://github.com/lawtonsean1-dev/deep-space-workstation.git
+
+# Navigate to the directory
+cd deep-space-workstation
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the Streamlit app
+streamlit run app.py
