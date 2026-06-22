@@ -6,6 +6,8 @@ import requests
 import urllib.parse
 from astropy.coordinates import SkyCoord
 import astropy.units as u
+# UPGRADED: Import SIMBAD resolver module
+from astroquery.simbad import Simbad
 
 # --- THEME & CONFIGURATION ---
 st.set_page_config(
@@ -23,7 +25,7 @@ st.markdown(
             🌌 DEEP SPACE SYSTEM DOSSIER WORKSTATION
         </h1>
         <p style='color: #8a99ad; font-family: monospace; font-size: 14px; margin-top: 0px;'>
-            Sub-Orbital Data Pipeline // Connected to NASA Composite Archives
+            Sub-Orbital Data Pipeline // Connected to NASA & SIMBAD Registries
         </p>
     </div>
     """, 
@@ -39,8 +41,9 @@ with st.sidebar:
         """
         <div style='font-size: 12px; color: #64748b; font-family: monospace;'>
             SYSTEM STATUS: <span style='color: #10b981;'>ONLINE</span><br>
-            ARCHIVE REGISTRY: PSCOMPPARS<br>
-            PIPELINE VERSION: 2.2.0
+            PRIMARY LOG: NASA PSCOMPPARS<br>
+            FALLBACK LOG: CDS SIMBAD RESOLVER<br>
+            PIPELINE VERSION: 2.3.0
         </div>
         """,
         unsafe_allow_html=True
@@ -60,16 +63,61 @@ def fetch_nasa_archive_data(star_name):
         if response.status_code == 200:
             data = response.json()
             if data and len(data) > 0:
-                return data[0], url
+                return data[0]
     except:
         pass
-    return None, url
+    return None
+
+# UPGRADED: Fallback SIMBAD Resolver Function
+def resolve_via_simbad(star_name):
+    try:
+        # Configure Simbad to extract extra fields (Stellar Temperature/Classification)
+        custom_simbad = Simbad()
+        custom_simbad.add_votable_fields('flux(V)', 'sp')
+        
+        result_table = custom_simbad.query_object(star_name)
+        if result_table is not None and len(result_table) > 0:
+            row = result_table[0]
+            
+            # Parse coordinates cleanly via Astropy string interpretation
+            ra_str = str(row['RA'])
+            dec_str = str(row['DEC'])
+            coord = SkyCoord(f"{ra_str} {dec_str}", unit=(u.hourangle, u.deg), frame='icrs')
+            
+            # Pack into a pseudo-archive dictionary matching your application data structure
+            simbad_payload = {
+                'pl_name': f"{star_name} b (Unconfirmed)",
+                'hostname': str(row['MAIN_ID']),
+                'ra': float(coord.ra.deg),
+                'dec': float(coord.dec.deg),
+                'sy_dist': None, # SIMBAD requires separate parallax calculations
+                'pl_orbsmax': 1.0, # Default safe fallback orbit for visualizer representation
+                'pl_orbeccen': 0.0,
+                'st_rad': 1.0,
+                'st_mass': 1.0,
+                'st_teff': 5778.0, # Default Solar Temperature anchor
+                'sy_pnum': 0,
+                'source': 'SIMBAD Astronomical Database'
+            }
+            return simbad_payload
+    except:
+        pass
+    return None
 
 # --- MAIN WORKSPACE PIPELINE ---
 if st.sidebar.button("Run System Compilation", use_container_width=True):
-    with st.spinner("Harvesting comprehensive system metrics from NASA Composite Archives..."):
-        archive_data, last_url = fetch_nasa_archive_data(target)
+    with st.spinner("Harvesting telemetry from international sky catalogs..."):
         
+        # Phase 1: Query NASA
+        archive_data = fetch_nasa_archive_data(target)
+        dataSource = "NASA Exoplanet Archive"
+        
+        # Phase 2: UPGRADED Fallback Routing to SIMBAD if NASA is blank
+        if archive_data is None:
+            st.sidebar.info("Target absent from Exoplanet Catalog. Rerouting query to SIMBAD...")
+            archive_data = resolve_via_simbad(target)
+            dataSource = "CDS SIMBAD Network"
+            
         lc_found = False
         periodogram = None
         folded_lc = None
@@ -97,9 +145,9 @@ if st.sidebar.button("Run System Compilation", use_container_width=True):
                 st.sidebar.warning(f"Lightkurve skipped plotting processing: {e}")
 
         if archive_data is None:
-            st.error(f"❌ Could not find comprehensive archive data for '{target}'.")
+            st.error(f"❌ Target Identifier '{target}' could not be resolved in NASA or SIMBAD registries.")
         else:
-            st.success(f"🌌 Full Dossier Compiled for the {archive_data['hostname']} System!")
+            st.success(f"🌌 Full Dossier Compiled via {dataSource}!")
             
             # Extract Metrics and Error Boundaries safely
             ra_raw = archive_data.get('ra')
@@ -119,14 +167,9 @@ if st.sidebar.button("Run System Compilation", use_container_width=True):
             teff = archive_data.get('st_teff')
             teff = float(teff) if teff is not None else 5778.0
             
-            r_star_err = archive_data.get('st_raderr1')
-            r_star_err = float(r_star_err) if r_star_err is not None else 0.0
-            
-            m_star_err = archive_data.get('st_masserr1')
-            m_star_err = float(m_star_err) if m_star_err is not None else 0.0
-            
-            teff_err = archive_data.get('st_tefferr1')
-            teff_err = float(teff_err) if teff_err is not None else 0.0
+            r_star_err = archive_data.get('st_raderr1', 0.0)
+            m_star_err = archive_data.get('st_masserr1', 0.0)
+            teff_err = archive_data.get('st_tefferr1', 0.0)
             
             distance_ly = distance_pc * 3.26156 if distance_pc else None
             
@@ -212,7 +255,6 @@ if st.sidebar.button("Run System Compilation", use_container_width=True):
                 
                 st.markdown(f"<h4 style='color: #00e6ff; font-family: monospace; margin-top:20px;'>🪐 PLANETARY PROFILE: {archive_data.get('pl_name')}</h4>", unsafe_allow_html=True)
                 
-                # Split Tab 2 into numeric metrics on the left, and the orbital tracker layout on the right
                 with st.container(border=True):
                     col_num, col_viz = st.columns([1, 1.2])
                     
@@ -234,38 +276,31 @@ if st.sidebar.button("Run System Compilation", use_container_width=True):
                             
                     with col_viz:
                         if semi_major_au and semi_minor_au:
-                            # --- UPGRADED: MATPLOTLIB 2D ORBITAL TRAJECTORY GRAPH ---
                             plt.style.use('dark_background')
                             fig_orb, ax_orb = plt.subplots(figsize=(5, 4.5))
                             fig_orb.patch.set_facecolor('#0f172a')
                             ax_orb.set_facecolor('#0f172a')
                             
-                            # 1. Compute parametric coordinates for the elliptical trajectory loop
                             theta = np.linspace(0, 2*np.pi, 200)
                             x_orbit = semi_major_au * np.cos(theta)
                             y_orbit = semi_minor_au * np.sin(theta)
                             
-                            # 2. Offset orbit so the Host Star anchors at the true geometric focus
                             focal_shift = np.sqrt(semi_major_au**2 - semi_minor_au**2)
                             x_orbit_shifted = x_orbit - focal_shift
                             
-                            # 3. Plot components (Trajectory line, Host Star, and Planet marker position)
                             ax_orb.plot(x_orbit_shifted, y_orbit, color='#38bdf8', linestyle='--', alpha=0.8, lw=1.5, label='Orbital Path')
                             ax_orb.scatter(0, 0, color='#f59e0b', s=180, edgecolors='#fff', linewidths=1.5, zorder=5, label='Host Star')
                             ax_orb.scatter(semi_major_au - focal_shift, 0, color=class_color, s=90, zorder=5, label='Current Sector Vector')
                             
-                            # Styling rules for a clean technical HUD panel
                             ax_orb.set_xlabel('Distance Axis (AU)', color='#8a99ad', fontfamily='monospace', fontsize=9)
                             ax_orb.set_ylabel('Distance Axis (AU)', color='#8a99ad', fontfamily='monospace', fontsize=9)
                             ax_orb.set_title("2D ORBITAL TRAJECTORY SYSTEM MAP", color='#00e6ff', fontfamily='monospace', fontsize=11, pad=10)
                             ax_orb.grid(True, color='#334155', linestyle=':', alpha=0.5)
                             ax_orb.legend(loc='upper right', facecolor='#1e293b', edgecolor='#334155', fontsize=8)
-                            
-                            # Keep aspect ratio square to avoid stretching orbital eccentricity shape distorting math
                             ax_orb.set_aspect('equal', 'datalim')
                             st.pyplot(fig_orb)
                         else:
-                            st.info("📊 Orbital matrix trajectories cannot be drawn: Missing Semi-Major Axis parameters from this catalog entry.")
+                            st.info("📊 Orbital matrix trajectories cannot be drawn: Missing Semi-Major Axis parameters.")
 
             with tab3:
                 st.markdown("<h4 style='color: #00e6ff; font-family: monospace; margin-top:15px;'>📊 RAW MISSION DATA TIME-SERIES</h4>", unsafe_allow_html=True)
