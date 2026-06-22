@@ -40,7 +40,7 @@ with st.sidebar:
         <div style='font-size: 12px; color: #64748b; font-family: monospace;'>
             SYSTEM STATUS: <span style='color: #10b981;'>ONLINE</span><br>
             ARCHIVE REGISTRY: PSCOMPPARS<br>
-            PIPELINE VERSION: 2.1.0
+            PIPELINE VERSION: 2.2.0
         </div>
         """,
         unsafe_allow_html=True
@@ -48,14 +48,11 @@ with st.sidebar:
 
 def fetch_nasa_archive_data(star_name):
     clean_name = star_name.strip().upper()
-    
-    # FIX: Using exact match "=" instead of loose "like %" to avoid fetching wrong targets
     query = (
         f"select top 1 pl_name, hostname, ra, dec, sy_dist, pl_orbsmax, pl_orbeccen, "
         f"st_rad, st_raderr1, st_mass, st_masserr1, st_teff, st_tefferr1, sy_pnum "
         f"from pscomppars where upper(hostname) = '{clean_name}'"
     )
-    
     url = "https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=" + urllib.parse.quote(query) + "&format=json"
     
     try:
@@ -104,7 +101,7 @@ if st.sidebar.button("Run System Compilation", use_container_width=True):
         else:
             st.success(f"🌌 Full Dossier Compiled for the {archive_data['hostname']} System!")
             
-            # FIX: Explicit type casting and protection checks to avoid page rendering breakages
+            # Extract Metrics and Error Boundaries safely
             ra_raw = archive_data.get('ra')
             dec_raw = archive_data.get('dec')
             distance_pc = archive_data.get('sy_dist')
@@ -134,8 +131,10 @@ if st.sidebar.button("Run System Compilation", use_container_width=True):
             distance_ly = distance_pc * 3.26156 if distance_pc else None
             
             if semi_major_au:
-                semi_minor_au = float(semi_major_au) * np.sqrt(1 - eccentricity**2)
+                semi_major_au = float(semi_major_au)
+                semi_minor_au = semi_major_au * np.sqrt(1 - eccentricity**2)
             else:
+                semi_major_au = None
                 semi_minor_au = None
 
             if lc_found:
@@ -199,38 +198,74 @@ if st.sidebar.button("Run System Compilation", use_container_width=True):
                     c1, c2, c3, c4 = st.columns(4)
                     c1.metric("Confirmed System Planets", f"{archive_data.get('sy_pnum', '1')}")
                     
-                    # Stellar Mass with error bars
                     mass_val = f"{m_star:.2f}" if m_star else "N/A"
                     mass_delta = f"± {m_star_err:.2f}" if m_star and m_star_err else None
                     c2.metric("Stellar Mass (M☉)", mass_val, delta=mass_delta, delta_color="off")
                     
-                    # Stellar Radius with error bars
                     rad_val = f"{r_star:.2f}" if r_star else "N/A"
                     rad_delta = f"± {r_star_err:.2f}" if r_star and r_star_err else None
                     c3.metric("Stellar Radius (R☉)", rad_val, delta=rad_delta, delta_color="off")
                     
-                    # Stellar Temperature with error bars
                     teff_val = f"{int(teff):,}" if teff else "N/A"
                     teff_delta = f"± {int(teff_err):,}" if teff and teff_err else None
                     c4.metric("Stellar Temperature (K)", teff_val, delta=teff_delta, delta_color="off")
                 
                 st.markdown(f"<h4 style='color: #00e6ff; font-family: monospace; margin-top:20px;'>🪐 PLANETARY PROFILE: {archive_data.get('pl_name')}</h4>", unsafe_allow_html=True)
+                
+                # Split Tab 2 into numeric metrics on the left, and the orbital tracker layout on the right
                 with st.container(border=True):
-                    cx1, cx2, cx3 = st.columns(3)
-                    cx1.metric("Semi-Major Axis (a)", f"{semi_major_au:.4f} AU" if semi_major_au else "N/A")
-                    cx2.metric("Semi-Minor Axis (b)", f"{semi_minor_au:.4f} AU" if semi_minor_au else "N/A")
-                    cx3.metric("Orbital Eccentricity (e)", f"{eccentricity:.4f}" if eccentricity else "0.0000")
+                    col_num, col_viz = st.columns([1, 1.2])
                     
-                    if r_planet_earth is not None:
-                        st.markdown(
-                            f"""
-                            <div style='padding: 12px; background-color: #1e293b; border-left: 5px solid {class_color}; margin-top: 20px; font-family: monospace; border-radius: 4px;'>
-                                <span style='color: #8a99ad;'>DERIVED PHYSICAL CLASSIFICATION:</span><br>
-                                <strong style='color: {class_color}; font-size: 18px;'>{r_planet_earth:.2f} Earth Radii — {classification.upper()}</strong>
-                            </div>
-                            """, 
-                            unsafe_allow_html=True
-                        )
+                    with col_num:
+                        st.metric("Semi-Major Axis (a)", f"{semi_major_au:.4f} AU" if semi_major_au else "N/A")
+                        st.metric("Semi-Minor Axis (b)", f"{semi_minor_au:.4f} AU" if semi_minor_au else "N/A")
+                        st.metric("Orbital Eccentricity (e)", f"{eccentricity:.4f}" if eccentricity else "0.0000")
+                        
+                        if r_planet_earth is not None:
+                            st.markdown(
+                                f"""
+                                <div style='padding: 12px; background-color: #1e293b; border-left: 5px solid {class_color}; margin-top: 20px; font-family: monospace; border-radius: 4px;'>
+                                    <span style='color: #8a99ad;'>DERIVED PHYSICAL CLASSIFICATION:</span><br>
+                                    <strong style='color: {class_color}; font-size: 16px;'>{r_planet_earth:.2f} Earth Radii<br>{classification.upper()}</strong>
+                                </div>
+                                """, 
+                                unsafe_allow_html=True
+                            )
+                            
+                    with col_viz:
+                        if semi_major_au and semi_minor_au:
+                            # --- UPGRADED: MATPLOTLIB 2D ORBITAL TRAJECTORY GRAPH ---
+                            plt.style.use('dark_background')
+                            fig_orb, ax_orb = plt.subplots(figsize=(5, 4.5))
+                            fig_orb.patch.set_facecolor('#0f172a')
+                            ax_orb.set_facecolor('#0f172a')
+                            
+                            # 1. Compute parametric coordinates for the elliptical trajectory loop
+                            theta = np.linspace(0, 2*np.pi, 200)
+                            x_orbit = semi_major_au * np.cos(theta)
+                            y_orbit = semi_minor_au * np.sin(theta)
+                            
+                            # 2. Offset orbit so the Host Star anchors at the true geometric focus
+                            focal_shift = np.sqrt(semi_major_au**2 - semi_minor_au**2)
+                            x_orbit_shifted = x_orbit - focal_shift
+                            
+                            # 3. Plot components (Trajectory line, Host Star, and Planet marker position)
+                            ax_orb.plot(x_orbit_shifted, y_orbit, color='#38bdf8', linestyle='--', alpha=0.8, lw=1.5, label='Orbital Path')
+                            ax_orb.scatter(0, 0, color='#f59e0b', s=180, edgecolors='#fff', linewidths=1.5, zorder=5, label='Host Star')
+                            ax_orb.scatter(semi_major_au - focal_shift, 0, color=class_color, s=90, zorder=5, label='Current Sector Vector')
+                            
+                            # Styling rules for a clean technical HUD panel
+                            ax_orb.set_xlabel('Distance Axis (AU)', color='#8a99ad', fontfamily='monospace', fontsize=9)
+                            ax_orb.set_ylabel('Distance Axis (AU)', color='#8a99ad', fontfamily='monospace', fontsize=9)
+                            ax_orb.set_title("2D ORBITAL TRAJECTORY SYSTEM MAP", color='#00e6ff', fontfamily='monospace', fontsize=11, pad=10)
+                            ax_orb.grid(True, color='#334155', linestyle=':', alpha=0.5)
+                            ax_orb.legend(loc='upper right', facecolor='#1e293b', edgecolor='#334155', fontsize=8)
+                            
+                            # Keep aspect ratio square to avoid stretching orbital eccentricity shape distorting math
+                            ax_orb.set_aspect('equal', 'datalim')
+                            st.pyplot(fig_orb)
+                        else:
+                            st.info("📊 Orbital matrix trajectories cannot be drawn: Missing Semi-Major Axis parameters from this catalog entry.")
 
             with tab3:
                 st.markdown("<h4 style='color: #00e6ff; font-family: monospace; margin-top:15px;'>📊 RAW MISSION DATA TIME-SERIES</h4>", unsafe_allow_html=True)
