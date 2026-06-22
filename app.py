@@ -6,7 +6,6 @@ import requests
 import urllib.parse
 from astropy.coordinates import SkyCoord
 import astropy.units as u
-# Core Astronomy Network Registries
 from astroquery.simbad import Simbad
 
 # --- THEME & CONFIGURATION ---
@@ -43,7 +42,7 @@ with st.sidebar:
             SYSTEM STATUS: <span style='color: #10b981;'>ONLINE</span><br>
             PRIMARY LOG: NASA PSCOMPPARS<br>
             FALLBACK LOG: CDS SIMBAD RESOLVER<br>
-            PIPELINE VERSION: 2.3.1
+            PIPELINE VERSION: 2.3.2
         </div>
         """,
         unsafe_allow_html=True
@@ -68,59 +67,50 @@ def fetch_nasa_archive_data(star_name):
         pass
     return None
 
-# FIXED: Fallback SIMBAD Resolver Function with full Byte Decoding
+# BULLETPROOF REWRITE: Let Astropy handle parsing natively instead of table extraction
 def resolve_via_simbad(star_name):
     try:
-        custom_simbad = Simbad()
-        custom_simbad.add_votable_fields('flux(V)', 'sp')
+        clean_name = star_name.strip()
         
-        result_table = custom_simbad.query_object(star_name)
-        if result_table is not None and len(result_table) > 0:
-            row = result_table[0]
+        # 1. Ask Astropy to hit the CDS name resolver database directly
+        coord = SkyCoord.from_name(clean_name)
+        
+        # 2. Try to grab a standardized Main ID using a simpler query type
+        id_table = Simbad.query_objectids(clean_name)
+        if id_table is not None and len(id_table) > 0:
+            raw_id = id_table[0][0]
+            id_str = raw_id.decode('utf-8') if isinstance(raw_id, bytes) else str(raw_id)
+        else:
+            id_str = clean_name
             
-            # Extract and explicitly decode byte sequences from network buffers
-            ra_raw = row['RA']
-            dec_raw = row['DEC']
-            
-            ra_str = ra_raw.decode('utf-8') if isinstance(ra_raw, bytes) else str(ra_raw)
-            dec_str = dec_raw.decode('utf-8') if isinstance(dec_raw, bytes) else str(dec_raw)
-            
-            # Coordinate string parser engine
-            coord = SkyCoord(f"{ra_str} {dec_str}", unit=(u.hourangle, u.deg), frame='icrs')
-            
-            main_id = row['MAIN_ID']
-            id_str = main_id.decode('utf-8') if isinstance(main_id, bytes) else str(main_id)
-            
-            # Format custom payload structure to mimic archive schema mapping
-            simbad_payload = {
-                'pl_name': f"{star_name} b (Candidate)",
-                'hostname': id_str,
-                'ra': float(coord.ra.deg),
-                'dec': float(coord.dec.deg),
-                'sy_dist': None,
-                'pl_orbsmax': 1.0, # Target default radius for orbital graph anchor
-                'pl_orbeccen': 0.0,
-                'st_rad': 1.0,
-                'st_mass': 1.0,
-                'st_teff': 5778.0,
-                'sy_pnum': 0,
-                'source': 'SIMBAD Astronomical Database'
-            }
-            return simbad_payload
-    except:
-        pass
+        # 3. Deliver a clean pseudo-payload back to the main layout engine
+        simbad_payload = {
+            'pl_name': f"{clean_name} b (Candidate)",
+            'hostname': id_str,
+            'ra': float(coord.ra.deg),
+            'dec': float(coord.dec.deg),
+            'sy_dist': None,
+            'pl_orbsmax': 1.0, 
+            'pl_orbeccen': 0.0,
+            'st_rad': 1.0,
+            'st_mass': 1.0,
+            'st_teff': 5778.0,
+            'sy_pnum': 0,
+            'source': 'SIMBAD Astronomical Database'
+        }
+        return simbad_payload
+    except Exception as e:
+        st.sidebar.error(f"Engine Fallback Notice: {e}")
     return None
 
 # --- MAIN WORKSPACE PIPELINE ---
 if st.sidebar.button("Run System Compilation", use_container_width=True):
     with st.spinner("Harvesting telemetry from international sky catalogs..."):
         
-        # Routing Execution
         archive_data = fetch_nasa_archive_data(target)
         dataSource = "NASA Exoplanet Archive"
         
         if archive_data is None:
-            st.sidebar.info("Target absent from Exoplanet Catalog. Rerouting query to SIMBAD...")
             archive_data = resolve_via_simbad(target)
             dataSource = "CDS SIMBAD Network"
             
@@ -155,7 +145,7 @@ if st.sidebar.button("Run System Compilation", use_container_width=True):
         else:
             st.success(f"🌌 Full Dossier Compiled via {dataSource}!")
             
-            # Numeric type conversion boundaries
+            # Numeric structural extractions
             ra_raw = archive_data.get('ra')
             dec_raw = archive_data.get('dec')
             distance_pc = archive_data.get('sy_dist')
