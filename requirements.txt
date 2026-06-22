@@ -3,3 +3,4 @@ lightkurve
 matplotlib
 astropy
 requests
+astroquery
