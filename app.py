@@ -6,7 +6,7 @@ import requests
 import urllib.parse
 from astropy.coordinates import SkyCoord
 import astropy.units as u
-# UPGRADED: Import SIMBAD resolver module
+# Core Astronomy Network Registries
 from astroquery.simbad import Simbad
 
 # --- THEME & CONFIGURATION ---
@@ -43,7 +43,7 @@ with st.sidebar:
             SYSTEM STATUS: <span style='color: #10b981;'>ONLINE</span><br>
             PRIMARY LOG: NASA PSCOMPPARS<br>
             FALLBACK LOG: CDS SIMBAD RESOLVER<br>
-            PIPELINE VERSION: 2.3.0
+            PIPELINE VERSION: 2.3.1
         </div>
         """,
         unsafe_allow_html=True
@@ -68,10 +68,9 @@ def fetch_nasa_archive_data(star_name):
         pass
     return None
 
-# UPGRADED: Fallback SIMBAD Resolver Function
+# FIXED: Fallback SIMBAD Resolver Function with full Byte Decoding
 def resolve_via_simbad(star_name):
     try:
-        # Configure Simbad to extract extra fields (Stellar Temperature/Classification)
         custom_simbad = Simbad()
         custom_simbad.add_votable_fields('flux(V)', 'sp')
         
@@ -79,23 +78,31 @@ def resolve_via_simbad(star_name):
         if result_table is not None and len(result_table) > 0:
             row = result_table[0]
             
-            # Parse coordinates cleanly via Astropy string interpretation
-            ra_str = str(row['RA'])
-            dec_str = str(row['DEC'])
+            # Extract and explicitly decode byte sequences from network buffers
+            ra_raw = row['RA']
+            dec_raw = row['DEC']
+            
+            ra_str = ra_raw.decode('utf-8') if isinstance(ra_raw, bytes) else str(ra_raw)
+            dec_str = dec_raw.decode('utf-8') if isinstance(dec_raw, bytes) else str(dec_raw)
+            
+            # Coordinate string parser engine
             coord = SkyCoord(f"{ra_str} {dec_str}", unit=(u.hourangle, u.deg), frame='icrs')
             
-            # Pack into a pseudo-archive dictionary matching your application data structure
+            main_id = row['MAIN_ID']
+            id_str = main_id.decode('utf-8') if isinstance(main_id, bytes) else str(main_id)
+            
+            # Format custom payload structure to mimic archive schema mapping
             simbad_payload = {
-                'pl_name': f"{star_name} b (Unconfirmed)",
-                'hostname': str(row['MAIN_ID']),
+                'pl_name': f"{star_name} b (Candidate)",
+                'hostname': id_str,
                 'ra': float(coord.ra.deg),
                 'dec': float(coord.dec.deg),
-                'sy_dist': None, # SIMBAD requires separate parallax calculations
-                'pl_orbsmax': 1.0, # Default safe fallback orbit for visualizer representation
+                'sy_dist': None,
+                'pl_orbsmax': 1.0, # Target default radius for orbital graph anchor
                 'pl_orbeccen': 0.0,
                 'st_rad': 1.0,
                 'st_mass': 1.0,
-                'st_teff': 5778.0, # Default Solar Temperature anchor
+                'st_teff': 5778.0,
                 'sy_pnum': 0,
                 'source': 'SIMBAD Astronomical Database'
             }
@@ -108,11 +115,10 @@ def resolve_via_simbad(star_name):
 if st.sidebar.button("Run System Compilation", use_container_width=True):
     with st.spinner("Harvesting telemetry from international sky catalogs..."):
         
-        # Phase 1: Query NASA
+        # Routing Execution
         archive_data = fetch_nasa_archive_data(target)
         dataSource = "NASA Exoplanet Archive"
         
-        # Phase 2: UPGRADED Fallback Routing to SIMBAD if NASA is blank
         if archive_data is None:
             st.sidebar.info("Target absent from Exoplanet Catalog. Rerouting query to SIMBAD...")
             archive_data = resolve_via_simbad(target)
@@ -149,7 +155,7 @@ if st.sidebar.button("Run System Compilation", use_container_width=True):
         else:
             st.success(f"🌌 Full Dossier Compiled via {dataSource}!")
             
-            # Extract Metrics and Error Boundaries safely
+            # Numeric type conversion boundaries
             ra_raw = archive_data.get('ra')
             dec_raw = archive_data.get('dec')
             distance_pc = archive_data.get('sy_dist')
@@ -195,7 +201,7 @@ if st.sidebar.button("Run System Compilation", use_container_width=True):
                 except:
                     pass
 
-            # Classification & Color Coding
+            # Classification & Color Mapping Layout
             if r_planet_earth is not None:
                 if r_planet_earth < 1.2:
                     classification = "Earth-sized Rocky Planet"
