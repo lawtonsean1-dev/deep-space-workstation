@@ -26,7 +26,7 @@ Help us build the ultimate amateur astronomy workstation! Here is what we are bu
 - [x] Create a core NASA `pscomppars` data retrieval pipeline.
 - [x] Implement live `lightkurve` transit plotting.
 - [x] Cyberpunk dark-sky theme overhaul.
-- [ ] Add error margins (\pm) to host stellar metrics.
+- [x] Add error margins (\pm) to host stellar metrics.
 - [ ] Build a 2D orbital trajectory visualiser using `matplotlib`.
 - [ ] Integrate a SIMBAD coordinate resolver for non-indexed target stars.
 
