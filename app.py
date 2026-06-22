@@ -147,7 +147,6 @@ with tab2:
     c = np.sqrt(a**2 - b**2)   # Focal Shift Distance from center
     
     theta = np.linspace(0, 2*np.pi, 500)
-    # Parametric equations of an ellipse centered at coordinates (0,0)
     x_ellipse = a * np.cos(theta)
     y_ellipse = b * np.sin(theta)
     
@@ -163,16 +162,18 @@ with tab2:
     # Place planet coordinate position along its true vector pathway
     ax.scatter([x_ellipse[100]], [y_ellipse[100]], color='#00ff66', s=50, zorder=5, label="Exoplanet Body")
     
-    # UI cleanup adjustments
-    ax.axhline(0, color='rgba(255,255,255,0.1)', linewidth=0.5)
-    ax.axvline(0, color='rgba(255,255,255,0.1)', linewidth=0.5)
+    # UI cleanup adjustments using native hex colors and alpha arguments
+    ax.axhline(0, color='#ffffff', alpha=0.1, linewidth=0.5)
+    ax.axvline(0, color='#ffffff', alpha=0.1, linewidth=0.5)
     ax.set_xlabel("X-Axis Vector Shift (AU)", color='#8a99ad', fontfamily='monospace', fontsize=9)
     ax.set_ylabel("Y-Axis Vector Shift (AU)", color='#8a99ad', fontfamily='monospace', fontsize=9)
     ax.tick_params(colors='#8a99ad', labelsize=8)
     for spine in ax.spines.values():
-        spine.set_color('rgba(0,243,255,0.2)')
+        spine.set_color('#00f3ff')
+        spine.set_alpha(0.2)
         
-    ax.legend(facecolor='#0b0f19', edgecolor='rgba(0,243,255,0.3)', labelcolor='#f3f4f6', fontsize=8)
+    ax.legend(facecolor='#0b0f19', edgecolor='#00f3ff', labelcolor='#f3f4f6', fontsize=8)
+    ax.get_legend().get_frame().set_alpha(0.1)
     ax.axis('equal')
     st.pyplot(fig)
 
@@ -191,7 +192,8 @@ with tab3:
     fig2, ax2 = plt.subplots(figsize=(8, 3.5), facecolor='#030712')
     ax2.set_facecolor('#070d19')
     
-    ax2.scatter(time_array, flux_array, color='rgba(0, 243, 255, 0.4)', s=4, label="Flattened Photometry Arrays")
+    # Replaced rgba with native matplotlib hex color configuration
+    ax2.scatter(time_array, flux_array, color='#00f3ff', alpha=0.4, s=4, label="Flattened Photometry Arrays")
     
     # Generate smoothed trend line representing processed BLS folding curves
     smooth_flux = np.ones(300)
@@ -202,7 +204,9 @@ with tab3:
     ax2.set_ylabel("Normalized Relative Flux Array", color='#8a99ad', fontfamily='monospace', fontsize=9)
     ax2.tick_params(colors='#8a99ad', labelsize=8)
     for spine in ax2.spines.values():
-        spine.set_color('rgba(0,243,255,0.2)')
+        spine.set_color('#00f3ff')
+        spine.set_alpha(0.2)
         
-    ax2.legend(facecolor='#0b0f19', edgecolor='rgba(0,243,255,0.3)', labelcolor='#f3f4f6', fontsize=8)
+    ax2.legend(facecolor='#0b0f19', edgecolor='#00f3ff', labelcolor='#f3f4f6', fontsize=8)
+    ax2.get_legend().get_frame().set_alpha(0.1)
     st.pyplot(fig2)
