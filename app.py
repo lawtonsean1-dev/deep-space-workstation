@@ -16,19 +16,31 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom HUD Header Layout
+# --- OPEN UNIVERSITY WHITE-LABELED INSTITIONAL LAYOUT HEADER ---
 st.markdown(
     """
-    <div style='text-align: center; padding: 10px; margin-bottom: 20px;'>
-        <h1 style='color: #00ffff; text-shadow: 0 0 15px rgba(0,255,255,0.6); font-family: monospace; letter-spacing: 2px; margin-bottom: 5px;'>
-            🌌 DEEP SPACE SYSTEM DOSSIER WORKSTATION
-        </h1>
-        <p style='color: #8a99ad; font-family: monospace; font-size: 14px; margin-top: 0px;'>
-            Sub-Orbital Data Pipeline // Connected to NASA & SIMBAD Registries
+    <div class="premium-header">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00f3ff; padding-bottom: 15px; margin-bottom: 15px;">
+            <div style="text-align: left;">
+                <h1 style='color: #00f3ff; text-shadow: 0 0 20px rgba(0,243,255,0.6); font-family: monospace; letter-spacing: 2px; font-size: 2.1rem; margin: 0;'>
+                    🌌 THE OPEN UNIVERSITY
+                </h1>
+                <p style='color: #8a99ad; font-family: monospace; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; margin: 5px 0 0 0;'>
+                    School of Physical Sciences // Remote Observational Laboratory
+                </p>
+            </div>
+            <div style="text-align: right; font-family: monospace; border: 1px solid rgba(0, 243, 255, 0.3); padding: 8px 12px; border-radius: 6px; background: rgba(0, 243, 255, 0.03);">
+                <span style="color: #64748b; font-size: 10px; display: block; letter-spacing: 1px;">PORTAL ENVIRONMENT</span>
+                <span style="color: #00f3ff; font-size: 13px; font-weight: bold; text-shadow: 0 0 5px rgba(0,243,255,0.3);">OU-DISTANCE-NODE // LIVE</span>
+            </div>
+        </div>
+        <p style='color: #64748b; font-family: monospace; font-size: 11px; margin: 0; text-align: left;'>
+            SECURE ACCESS PROVIDED FOR S382 / S818 ASTROPHYSICS MODULE CURRICULUM. DATA CHANNEL LOGGED TO CAMPUS PORTAL.
         </p>
     </div>
     """, 
     unsafe_allow_html=True
+)
 )
 
 # --- SIDEBAR CONTROL COCKPIT ---
