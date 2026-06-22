@@ -41,7 +41,6 @@ st.markdown(
     """, 
     unsafe_allow_html=True
 )
-)
 
 # --- SIDEBAR CONTROL COCKPIT ---
 with st.sidebar:
