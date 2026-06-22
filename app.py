@@ -69,4 +69,195 @@ def fetch_nasa_archive_data(star_name):
     return None, url
 
 # --- MAIN WORKSPACE PIPELINE ---
-if st.
+if st.sidebar.button("Run System Compilation", use_container_width=True):
+    with st.spinner("Harvesting comprehensive system metrics from NASA Composite Archives..."):
+        archive_data, last_url = fetch_nasa_archive_data(target)
+        
+        lc_found = False
+        periodogram = None
+        folded_lc = None
+        r_planet_earth = None
+        transit_depth = 0.0
+        
+        if archive_data is not None:
+            lk_target = archive_data.get('hostname', target)
+            try:
+                search_result = lk.search_lightcurve(lk_target, cadence='long')
+                if len(search_result) == 0:
+                    search_result = lk.search_lightcurve(target, cadence='long')
+                    
+                if len(search_result) > 0:
+                    lc = search_result[0].download()
+                    if lc is not None:
+                        flat_lc = lc.flatten(window_length=401)
+                        periodogram = flat_lc.to_periodogram(method='bls', minimum_period=0.5, maximum_period=5)
+                        best_period = periodogram.period_at_max_power
+                        best_t0 = periodogram.transit_time_at_max_power
+                        transit_depth = periodogram.depth_at_max_power
+                        folded_lc = flat_lc.fold(period=best_period, epoch_time=best_t0)
+                        lc_found = True
+            except Exception as e:
+                st.sidebar.warning(f"Lightkurve skipped plotting processing: {e}")
+
+        if archive_data is None:
+            st.error(f"❌ Could not find comprehensive archive data for '{target}'.")
+        else:
+            st.success(f"🌌 Full Dossier Compiled for the {archive_data['hostname']} System!")
+            
+            # FIX: Explicit type casting and protection checks to avoid page rendering breakages
+            ra_raw = archive_data.get('ra')
+            dec_raw = archive_data.get('dec')
+            distance_pc = archive_data.get('sy_dist')
+            semi_major_au = archive_data.get('pl_orbsmax')
+            
+            eccentricity = archive_data.get('pl_orbeccen')
+            eccentricity = float(eccentricity) if eccentricity is not None else 0.0
+            
+            r_star = archive_data.get('st_rad')
+            r_star = float(r_star) if r_star is not None else 1.0
+            
+            m_star = archive_data.get('st_mass')
+            m_star = float(m_star) if m_star is not None else 1.0
+            
+            teff = archive_data.get('st_teff')
+            teff = float(teff) if teff is not None else 5778.0
+            
+            r_star_err = archive_data.get('st_raderr1')
+            r_star_err = float(r_star_err) if r_star_err is not None else 0.0
+            
+            m_star_err = archive_data.get('st_masserr1')
+            m_star_err = float(m_star_err) if m_star_err is not None else 0.0
+            
+            teff_err = archive_data.get('st_tefferr1')
+            teff_err = float(teff_err) if teff_err is not None else 0.0
+            
+            distance_ly = distance_pc * 3.26156 if distance_pc else None
+            
+            if semi_major_au:
+                semi_minor_au = float(semi_major_au) * np.sqrt(1 - eccentricity**2)
+            else:
+                semi_minor_au = None
+
+            if lc_found:
+                try:
+                    r_planet_solar = np.sqrt(transit_depth) * r_star
+                    r_planet_earth = getattr(r_planet_solar, 'value', r_planet_solar) * 109.2
+                except:
+                    r_planet_earth = None
+
+            constellation = "Unknown"
+            if ra_raw is not None and dec_raw is not None:
+                try:
+                    coord = SkyCoord(ra=ra_raw*u.degree, dec=dec_raw*u.degree, frame='icrs')
+                    constellation = coord.get_constellation()
+                except:
+                    pass
+
+            # Classification & Color Coding
+            if r_planet_earth is not None:
+                if r_planet_earth < 1.2:
+                    classification = "Earth-sized Rocky Planet"
+                    class_color = "#10b981"
+                elif r_planet_earth < 2.0:
+                    classification = "Super-Earth"
+                    class_color = "#3b82f6"
+                elif r_planet_earth < 4.0:
+                    classification = "Sub-Neptune"
+                    class_color = "#f59e0b"
+                else:
+                    classification = "Gas Giant"
+                    class_color = "#ef4444"
+            else:
+                classification = "Unknown Classification"
+                class_color = "#64748b"
+
+            # --- MULTI-TAB SCI-FI WORKSPACE ---
+            tab1, tab2, tab3 = st.tabs(["🗺️ CELESTIAL POSITIONING", "📐 ORBITAL TELEMETRY", "🔭 SENSOR PLOTS"])
+            
+            with tab1:
+                st.markdown("<h4 style='color: #00e6ff; font-family: monospace; margin-top:15px;'>📍 EQUATORIAL PROFILE</h4>", unsafe_allow_html=True)
+                with st.container(border=True):
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("Right Ascension (RA)", f"{ra_raw:.4f}°" if ra_raw else "N/A")
+                        st.metric("Declination (Dec)", f"{dec_raw:+.4f}°" if dec_raw else "N/A")
+                    with col2:
+                        st.metric("Distance", f"{distance_ly:.2f} Light Years" if distance_ly else "N/A")
+                        st.markdown(
+                            f"""
+                            <div style='padding: 10px; background-color: #1e293b; border-left: 4px solid #00e6ff; margin-top: 15px; font-family: monospace; border-radius: 4px;'>
+                                <span style='color: #8a99ad;'>CONSTELLATION SECTOR:</span><br>
+                                <strong style='color: #e2e8f0; font-size: 16px;'>{constellation.upper()}</strong>
+                            </div>
+                            """, 
+                            unsafe_allow_html=True
+                        )
+
+            with tab2:
+                st.markdown("<h4 style='color: #00e6ff; font-family: monospace; margin-top:15px;'>🌟 HOST STELLAR ARCHITECTURE</h4>", unsafe_allow_html=True)
+                with st.container(border=True):
+                    c1, c2, c3, c4 = st.columns(4)
+                    c1.metric("Confirmed System Planets", f"{archive_data.get('sy_pnum', '1')}")
+                    
+                    # Stellar Mass with error bars
+                    mass_val = f"{m_star:.2f}" if m_star else "N/A"
+                    mass_delta = f"± {m_star_err:.2f}" if m_star and m_star_err else None
+                    c2.metric("Stellar Mass (M☉)", mass_val, delta=mass_delta, delta_color="off")
+                    
+                    # Stellar Radius with error bars
+                    rad_val = f"{r_star:.2f}" if r_star else "N/A"
+                    rad_delta = f"± {r_star_err:.2f}" if r_star and r_star_err else None
+                    c3.metric("Stellar Radius (R☉)", rad_val, delta=rad_delta, delta_color="off")
+                    
+                    # Stellar Temperature with error bars
+                    teff_val = f"{int(teff):,}" if teff else "N/A"
+                    teff_delta = f"± {int(teff_err):,}" if teff and teff_err else None
+                    c4.metric("Stellar Temperature (K)", teff_val, delta=teff_delta, delta_color="off")
+                
+                st.markdown(f"<h4 style='color: #00e6ff; font-family: monospace; margin-top:20px;'>🪐 PLANETARY PROFILE: {archive_data.get('pl_name')}</h4>", unsafe_allow_html=True)
+                with st.container(border=True):
+                    cx1, cx2, cx3 = st.columns(3)
+                    cx1.metric("Semi-Major Axis (a)", f"{semi_major_au:.4f} AU" if semi_major_au else "N/A")
+                    cx2.metric("Semi-Minor Axis (b)", f"{semi_minor_au:.4f} AU" if semi_minor_au else "N/A")
+                    cx3.metric("Orbital Eccentricity (e)", f"{eccentricity:.4f}" if eccentricity else "0.0000")
+                    
+                    if r_planet_earth is not None:
+                        st.markdown(
+                            f"""
+                            <div style='padding: 12px; background-color: #1e293b; border-left: 5px solid {class_color}; margin-top: 20px; font-family: monospace; border-radius: 4px;'>
+                                <span style='color: #8a99ad;'>DERIVED PHYSICAL CLASSIFICATION:</span><br>
+                                <strong style='color: {class_color}; font-size: 18px;'>{r_planet_earth:.2f} Earth Radii — {classification.upper()}</strong>
+                            </div>
+                            """, 
+                            unsafe_allow_html=True
+                        )
+
+            with tab3:
+                st.markdown("<h4 style='color: #00e6ff; font-family: monospace; margin-top:15px;'>📊 RAW MISSION DATA TIME-SERIES</h4>", unsafe_allow_html=True)
+                if lc_found and periodogram is not None and folded_lc is not None:
+                    plt.style.use('dark_background')
+                    col_plot1, col_plot2 = st.columns(2)
+                    
+                    with col_plot1:
+                        with st.container(border=True):
+                            fig1, ax1 = plt.subplots(figsize=(6, 3.5))
+                            fig1.patch.set_facecolor('#0f172a')
+                            ax1.set_facecolor('#0f172a')
+                            
+                            periodogram.plot(ax=ax1, color='#00e6ff', lw=1.5)
+                            ax1.set_title("BLS Periodogram Power Scan", color='#00e6ff', fontfamily='monospace', fontsize=11)
+                            ax1.grid(True, color='#334155', linestyle=':', alpha=0.6)
+                            st.pyplot(fig1)
+                            
+                    with col_plot2:
+                        with st.container(border=True):
+                            fig2, ax2 = plt.subplots(figsize=(6, 3.5))
+                            fig2.patch.set_facecolor('#0f172a')
+                            ax2.set_facecolor('#0f172a')
+                            
+                            folded_lc.scatter(ax=ax2, color='#ff4500', alpha=0.4, s=3)
+                            ax2.set_title("Folded Light Curve Transit Signature", color='#00e6ff', fontfamily='monospace', fontsize=11)
+                            ax2.grid(True, color='#334155', linestyle=':', alpha=0.6)
+                            st.pyplot(fig2)
+                else:
+                    st.warning("📡 Photometric light curve files are currently unavailable for this specific sector configuration.")
