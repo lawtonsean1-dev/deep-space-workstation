@@ -310,7 +310,7 @@ if st.sidebar.button("Run System Compilation", use_container_width=True):
                             fig1.patch.set_facecolor('#0f172a')
                             ax1.set_facecolor('#0f172a')
                             
-                            periodogram.plot(ax=ax1, color='#00e6ff', lw=1.5)
+                            periodogram.plot(ax=ax1, color='#00ffff', lw=1.5)
                             ax1.set_title("BLS Periodogram Power Scan", color='#00e6ff', fontfamily='monospace', fontsize=11)
                             ax1.grid(True, color='#334155', linestyle=':', alpha=0.6)
                             st.pyplot(fig1)
