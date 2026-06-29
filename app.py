@@ -10,20 +10,85 @@ from astroquery.simbad import Simbad
 
 # --- THEME & CONFIGURATION ---
 st.set_page_config(
-    page_title="Orbit-Sentinel", 
-    page_icon="🌌", 
+    page_title="Orbit Sentinel", 
+    page_icon="🛰️", 
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom HUD Header Layout
+# --- 1. CANVAS STARFIELD BACKGROUND ENGINE ---
 st.markdown(
     """
-    <div style='text-align: center; padding: 10px; margin-bottom: 20px;'>
-        <h1 style='color: #00ffff; text-shadow: 0 0 15px rgba(0,255,255,0.6); font-family: monospace; letter-spacing: 2px; margin-bottom: 5px;'>
-            🌌 ORBIT-SENTINEL
+    <canvas id="starfield" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none;"></canvas>
+    <script>
+        const canvas = document.getElementById('starfield');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        for(let i=0; i<150; i++) {
+            stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 1.5,
+                speed: Math.random() * 0.15 + 0.05
+            });
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0f172a'; // Matches your theme panel deep depth
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = 'rgba(0, 255, 255, 0.6)';
+            stars.forEach(star => {
+                ctx.fillRect(star.x, star.y, star.size, star.size);
+                star.y += star.speed;
+                if(star.y > canvas.height) {
+                    star.y = 0;
+                    star.x = Math.random() * canvas.width;
+                }
+            });
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
+    """,
+    unsafe_allow_html=True
+)
+
+# --- 2. DYNAMIC RADAR SCANNING HEADER OVERLAY ---
+st.markdown(
+    """
+    <style>
+    @keyframes radar-sweep {
+        0% { border-color: rgba(0, 255, 255, 0.2); box-shadow: 0 0 5px rgba(0, 255, 255, 0.1); }
+        50% { border-color: rgba(0, 255, 255, 0.7); box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
+        100% { border-color: rgba(0, 255, 255, 0.2); box-shadow: 0 0 5px rgba(0, 255, 255, 0.1); }
+    }
+    .hud-box {
+        text-align: center; 
+        padding: 20px; 
+        margin-bottom: 25px;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid #00ffff;
+        border-radius: 8px;
+        animation: radar-sweep 4s infinite ease-in-out;
+        backdrop-filter: blur(4px);
+    }
+    </style>
+    
+    <div class="hud-box">
+        <h1 style='color: #00ffff; text-shadow: 0 0 15px rgba(0,255,255,0.6); font-family: monospace; letter-spacing: 3px; margin-bottom: 5px; margin-top:0;'>
+            🛰️ ORBIT SENTINEL // SYSTEM ONLINE
         </h1>
-        <p style='color: #8a99ad; font-family: monospace; font-size: 14px; margin-top: 0px;'>
+        <p style='color: #8a99ad; font-family: monospace; font-size: 13px; margin-top: 0px; letter-spacing: 1px;'>
             Sub-Orbital Data Pipeline // Connected to NASA & SIMBAD Registries
         </p>
     </div>
@@ -62,7 +127,7 @@ def fetch_nasa_archive_data(star_name):
         if response.status_code == 200:
             data = response.json()
             if data and len(data) > 0:
-                return data  # Returns all rows matching the system
+                return data 
     except:
         pass
     return None
@@ -70,11 +135,7 @@ def fetch_nasa_archive_data(star_name):
 def resolve_via_simbad(star_name):
     try:
         clean_name = star_name.strip()
-        
-        # 1. Ask Astropy to hit the CDS name resolver database directly
         coord = SkyCoord.from_name(clean_name)
-        
-        # 2. Try to grab a standardized Main ID using a simpler query type
         id_table = Simbad.query_objectids(clean_name)
         if id_table is not None and len(id_table) > 0:
             raw_id = id_table[0][0]
@@ -82,7 +143,6 @@ def resolve_via_simbad(star_name):
         else:
             id_str = clean_name
             
-        # 3. Deliver a clean pseudo-payload back wrapped in an iterable list format
         simbad_payload = [{
             'pl_name': f"{clean_name} b (Candidate)",
             'hostname': id_str,
@@ -103,38 +163,98 @@ def resolve_via_simbad(star_name):
     return None
 
 # --- MAIN WORKSPACE PIPELINE ---
-
-# Initialize operational state values if missing from run history
 if "system_planets" not in st.session_state:
     st.session_state.system_planets = None
 if "dataSource" not in st.session_state:
     st.session_state.dataSource = ""
 
-# Data execution block triggered on explicit request form execution
 if st.sidebar.button("Run System Compilation", use_container_width=True):
-    with st.spinner("Harvesting telemetry from international sky catalogs..."):
-        fetched_data = fetch_nasa_archive_data(target)
-        dataSource = "NASA Exoplanet Archive"
+    # --- FULL SCREEN SCI-FI RADAR SCANNING LOADING OVERLAY ---
+    scan_placeholder = st.empty()
+    scan_placeholder.markdown(
+        """
+        <style>
+        @keyframes radar-pulse {
+            0% { transform: scale(0.1); opacity: 0.8; }
+            80% { opacity: 0.4; }
+            100% { transform: scale(1.2); opacity: 0; }
+        }
+        @keyframes sweep {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .radar-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 40px auto;
+            background: radial-gradient(circle, rgba(0,255,255,0.05) 0%, rgba(15,23,42,0.6) 80%);
+            border: 2px solid rgba(0, 255, 255, 0.2);
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+        }
+        .radar-sweep {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: conic-gradient(from 0deg, transparent 50%, rgba(0, 255, 255, 0.4) 100%);
+            animation: sweep 2s infinite linear;
+            transform-origin: center;
+            border-radius: 50%;
+        }
+        .radar-pulse {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 2px solid rgba(0, 255, 255, 0.4);
+            border-radius: 50%;
+            animation: radar-pulse 2s infinite ease-out;
+            top: 0; left: 0;
+            box-sizing: border-box;
+        }
+        .telemetry-text {
+            text-align: center;
+            font-family: monospace;
+            color: #00ffff;
+            text-shadow: 0 0 8px rgba(0,255,255,0.5);
+            letter-spacing: 2px;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+        </style>
         
-        if fetched_data is None:
-            fetched_data = resolve_via_simbad(target)
-            dataSource = "CDS SIMBAD Network"
-            
-        st.session_state.system_planets = fetched_data
-        st.session_state.dataSource = dataSource
+        <div class="radar-container">
+            <div class="radar-pulse"></div>
+            <div class="radar-sweep"></div>
+        </div>
+        <div class="telemetry-text">🛰️ HARVESTING TELEMETRY // ESTABLISHING ORBITAL LINK...</div>
+        """,
+        unsafe_allow_html=True
+    )
 
-# Render layout structures if system telemetry records exist in session storage
+    fetched_data = fetch_nasa_archive_data(target)
+    dataSource = "NASA Exoplanet Archive"
+    
+    if fetched_data is None:
+        fetched_data = resolve_via_simbad(target)
+        dataSource = "CDS SIMBAD Network"
+        
+    st.session_state.system_planets = fetched_data
+    st.session_state.dataSource = dataSource
+    
+    # Wipe animation out once database query responses arrive
+    scan_placeholder.empty()
+
 if st.session_state.system_planets is not None:
     system_planets = st.session_state.system_planets
     dataSource = st.session_state.dataSource
     
     st.success(f"🌌 Full System Dossier Compiled via {dataSource}! Found {len(system_planets)} planetary body/bodies.")
     
-    # Selection component triggers safe full-script reruns without deleting session memory pools
     planet_names = [planet.get('pl_name') for planet in system_planets]
     selected_planet_name = st.selectbox("🪐 SELECT PLANETARY OBJECT TO ANALYZE:", planet_names)
     
-    # Isolate selected record data structures
     archive_data = next(p for p in system_planets if p.get('pl_name') == selected_planet_name)
     
     lc_found = False
@@ -345,6 +465,34 @@ if st.session_state.system_planets is not None:
                     st.pyplot(fig2)
         else:
             st.warning("📡 Photometric light curve files are currently unavailable for this specific sector configuration.")
-            
+
+# --- 3. DYNAMIC HUD WARNING STATUS (STANDBY PULSE) ---
 elif target:
-    st.info("📡 System offline. Input a target star and select 'Run System Compilation' to initiate pipeline diagnostics.")
+    st.markdown(
+        """
+        <style>
+        @keyframes pulse-warn {
+            0% { opacity: 0.6; box-shadow: 0 0 5px rgba(56, 189, 248, 0.1); }
+            50% { opacity: 1; box-shadow: 0 0 15px rgba(56, 189, 248, 0.3); }
+            100% { opacity: 0.6; box-shadow: 0 0 5px rgba(56, 189, 248, 0.1); }
+        }
+        .hud-warning {
+            padding: 20px;
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            border-left: 5px solid #38bdf8;
+            font-family: monospace;
+            border-radius: 6px;
+            animation: pulse-warn 3s infinite ease-in-out;
+            color: #38bdf8;
+            text-align: center;
+            letter-spacing: 1px;
+            font-size: 14px;
+        }
+        </style>
+        <div class="hud-warning">
+            🛰️ SENSOR ARRAY STANDBY // VERIFY TARGET VECTOR & INITIATE SYSTEM COMPILATION
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
