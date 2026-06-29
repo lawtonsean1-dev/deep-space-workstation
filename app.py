@@ -112,7 +112,7 @@ with st.sidebar:
             SHIP SCANNER STATUS: <span style='color: #10b981;'>ONLINE</span><br>
             PRIMARY LOG: NASA EXOPLANET ARCHIVE<br>
             FALLBACK LOG: CDS SIMBAD RECON<br>
-            SYS CORE VERSION: 3.3.0
+            SYS CORE VERSION: 3.3.1 (BUGFIX)
         </div>
         """,
         unsafe_allow_html=True
@@ -120,7 +120,6 @@ with st.sidebar:
 
 def fetch_nasa_archive_data(star_name):
     clean_name = star_name.strip().upper()
-    # Added st_spectype channel to capture real star classes (e.g. G2V, M3V)
     query = (
         f"select pl_name, hostname, ra, dec, sy_dist, pl_orbsmax, pl_orbeccen, "
         f"st_rad, st_raderr1, st_mass, st_masserr1, st_teff, st_tefferr1, sy_pnum, "
@@ -135,8 +134,8 @@ def fetch_nasa_archive_data(star_name):
             data = response.json()
             if data and len(data) > 0:
                 return data, "NASA Exoplanet Archive"
-    except:
-        pass
+    except Exception as e:
+        st.sidebar.error(f"NASA Query Error: {e}")
     return None, None
 
 def resolve_via_simbad(star_name):
@@ -146,16 +145,24 @@ def resolve_via_simbad(star_name):
         custom_simbad.add_typed_votable_fields('parallax', 'sp')
         result_table = custom_simbad.query_object(clean_name)
         
-        if result_table is not None:
+        if result_table is not None and len(result_table) > 0:
             coord = SkyCoord.from_name(clean_name)
-            parallax = result_table['PLX_VALUE'][0]
-            distance_pc = (1000 / parallax) if (parallax and parallax > 0) else None
             
-            # Extract real spectral type from SIMBAD table if available
-            raw_sp = result_table['SP_TYPE'][0]
-            sp_str = raw_sp.decode('utf-8') if isinstance(raw_sp, bytes) else str(raw_sp)
-            if not sp_str or sp_str == 'None' or sp_str == '--':
-                sp_str = "UNKNOWN"
+            # Safe parsing for empty parallax cells
+            try:
+                parallax = result_table['PLX_VALUE'][0]
+                distance_pc = (1000 / parallax) if (parallax and parallax > 0) else None
+            except:
+                distance_pc = None
+            
+            # Safe decoding for empty or missing spectrum cells
+            try:
+                raw_sp = result_table['SP_TYPE'][0]
+                sp_str = raw_sp.decode('utf-8') if isinstance(raw_sp, bytes) else str(raw_sp)
+                if not sp_str or sp_str == 'None' or sp_str == '--' or sp_str == 'masked':
+                    sp_str = "UNDETERMINED CLASS"
+            except:
+                sp_str = "UNDETERMINED CLASS"
             
             simbad_payload = [{
                 'pl_name': None, 
@@ -179,8 +186,8 @@ def resolve_via_simbad(star_name):
                 'st_spectype': sp_str
             }]
             return simbad_payload, "CDS SIMBAD Astronomical Database"
-    except:
-        pass
+    except Exception as e:
+        st.sidebar.error(f"SIMBAD Fallback Error: {e}")
     return None, None
 
 # --- MAIN WORKSPACE PIPELINE ---
@@ -190,6 +197,7 @@ if "dataSource" not in st.session_state:
     st.session_state.dataSource = ""
 
 if st.sidebar.button("Execute Planetary Proximity Sweep", use_container_width=True):
+    # --- FULL SCREEN SCI-FI RADAR SCANNING LOADING OVERLAY ---
     scan_placeholder = st.empty()
     scan_placeholder.markdown(
         """
@@ -276,15 +284,14 @@ if st.session_state.system_planets is not None:
         st.warning(f"⚠️ Stellar target verified via {dataSource}. Crucial Note: 0 verified orbiting exoplanets detected in archives.")
         archive_data = system_planets[0]
 
-    # Telemetry extraction
+    # Telemetry extraction with safe fallback handling
     ra_raw = archive_data.get('ra')
     dec_raw = archive_data.get('dec')
     distance_pc = archive_data.get('sy_dist')
     distance_ly = distance_pc * 3.26156 if distance_pc else None
     
-    # Extract spectral class payload
     st_spectype = archive_data.get('st_spectype')
-    if not st_spectype or st_spectype == 'None' or st_spectype == '':
+    if not st_spectype or str(st_spectype).strip() in ['None', '', '--', 'nan']:
         st_spectype = "UNDETERMINED CLASS"
     
     constellation = "Unknown"
@@ -295,7 +302,7 @@ if st.session_state.system_planets is not None:
         except:
             pass
 
-    # Dynamic layout tabs
+    # Layout generation
     if has_planets:
         tab1, tab2, tab3, tab4 = st.tabs([
             "🗺️ NAVIGATIONAL COORD", 
@@ -403,14 +410,12 @@ if st.session_state.system_planets is not None:
         with tab2:
             st.markdown("<h4 style='color: #00e6ff; font-family: monospace; margin-top:15px;'>🌟 STELLAR GRAVITY CORE ARCHITECTURE</h4>", unsafe_allow_html=True)
             with st.container(border=True):
-                # Expanded structural metrics container layout to include Star Type
                 c1, c2, c3, c4, c5 = st.columns(5)
                 c1.metric("Confirmed Planets", f"{archive_data.get('sy_pnum', '1')}")
                 c2.metric("Stellar Mass (M☉)", f"{m_star:.2f}" if m_star else "N/A")
                 c3.metric("Stellar Radius (R☉)", f"{r_star:.2f}" if r_star else "N/A")
                 c4.metric("Photosphere (K)", f"{int(teff):,}" if teff else "N/A")
                 
-                # Dynamic visual block for the core spectral designation
                 c5.markdown(f"""
                     <div style='text-align: center; padding: 2px; background-color: #1e293b; border: 1px dashed #00e6ff; border-radius: 4px;'>
                         <span style='font-size: 11px; color: #8a99ad; font-family: monospace;'>STAR TYPE</span><br>
