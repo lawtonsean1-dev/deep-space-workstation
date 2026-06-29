@@ -21,7 +21,7 @@ st.markdown(
     """
     <div style='text-align: center; padding: 10px; margin-bottom: 20px;'>
         <h1 style='color: #00ffff; text-shadow: 0 0 15px rgba(0,255,255,0.6); font-family: monospace; letter-spacing: 2px; margin-bottom: 5px;'>
-            🌌 DEEP SPACE SYSTEM DOSSIER WORKSTATION
+            🌌 ORBIT-SENTINEL
         </h1>
         <p style='color: #8a99ad; font-family: monospace; font-size: 14px; margin-top: 0px;'>
             Sub-Orbital Data Pipeline // Connected to NASA & SIMBAD Registries
