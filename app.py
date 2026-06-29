@@ -10,7 +10,7 @@ from astroquery.simbad import Simbad
 
 # --- THEME & CONFIGURATION ---
 st.set_page_config(
-    page_title="Deep Space Workstation", 
+    page_title="Orbit-Sentinel", 
     page_icon="🌌", 
     layout="wide",
     initial_sidebar_state="expanded"
