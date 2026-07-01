@@ -142,8 +142,10 @@ def resolve_via_simbad(star_name):
     try:
         clean_name = star_name.strip()
         custom_simbad = Simbad()
-        custom_simbad.add_typed_votable_fields('parallax', 'sp')
+        # Change this line to use the updated method name:
+        custom_simbad.add_votable_fields('parallax', 'sp_type')
         result_table = custom_simbad.query_object(clean_name)
+
         
         if result_table is not None and len(result_table) > 0:
             coord = SkyCoord.from_name(clean_name)
