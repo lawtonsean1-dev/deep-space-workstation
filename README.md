@@ -33,8 +33,8 @@ Using parametric coordinate loops plotted via vector geometry, the workstation d
 
 ## 🚀 Live Deployment
 
-📦 **GitHub Repository:** `https://github.com/[YOUR-USERNAME]/deep-space-workstation`  
-🔗 **Live Web Application:** `https://[YOUR-APP-NAME].streamlit.app`
+📦 **GitHub Repository:** `https://github.com/lawtonsean1-dev/deep-space-workstation`  
+🔗 **Live Web Application:** `https://deep-space-workstation.streamlit.app`
 
 
 <img width="1917" height="867" alt="Screenshot 2026-06-22 115355" src="https://github.com/user-attachments/assets/ea5ed8f5-5769-4b25-b36c-5c23c8eb40cc" />
