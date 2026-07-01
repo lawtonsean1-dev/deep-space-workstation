@@ -86,7 +86,7 @@ st.markdown(
     
     <div class="hud-box">
         <h1 style='color: #00ffff; text-shadow: 0 0 15px rgba(0,255,255,0.6); font-family: monospace; letter-spacing: 3px; margin-bottom: 5px; margin-top:0;'>
-            🛰️ ORBIT SENTINEL // WEAPONS & SENSORS HUD
+            🛰️ ORBIT SENTINEL // SENSORS HUD
         </h1>
         <p style='color: #8a99ad; font-family: monospace; font-size: 13px; margin-top: 0px; letter-spacing: 1px;'>
             Orbital Proximity Scan // Bridge Mainframe Telemetry Pipeline
